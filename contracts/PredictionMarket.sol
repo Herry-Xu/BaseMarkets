@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IPriceFeed.sol";
 
 contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
+    // Structs
     struct Round {
         uint256 epoch;
+        string pairId;
         uint256 startTimestamp;
         uint256 lockTimestamp;
         uint256 closeTimestamp;
@@ -27,27 +29,66 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         bool bull; // true for UP, false for DOWN
     }
 
-    IPriceFeed public priceFeed;
-    
-    uint256 public currentEpoch;
-    uint256 public intervalSeconds = 5 minutes;
-    uint256 public bufferSeconds = 30 seconds;
-    uint256 public minBetAmount = 1e18; // 1 USDC (assuming 18 decimals)
+    struct PairConfig {
+        string pairId;
+        address priceFeed;
+        bool enabled;
+        uint256 minBetAmount;
+        uint256 maxBetAmount;
+    }
+
+    // Constants
+    uint256 public constant MAX_BET_AMOUNT = 1000 ether;
+    uint256 public minBetAmount = 0.1 ether;
     uint256 public treasuryFee = 300; // 3%
     uint256 public constant MAX_TREASURY_FEE = 1000; // 10%
-    uint256 public constant MAX_BET_AMOUNT = 10000e18; // 10000 USDC
+    uint256 public intervalSeconds = 5 minutes;
+    uint256 public bufferSeconds = 30 seconds;
 
+    // State variables
+    uint256 public currentEpoch;
+    uint256 public treasuryAmount;
+    IPriceFeed public priceFeed;
+    address public adminAddress;
+    address public operatorAddress;
+
+    // Mappings
     mapping(uint256 => Round) public rounds;
     mapping(uint256 => mapping(address => UserBet)) public ledger;
+    mapping(string => PairConfig) public pairs;
+    mapping(string => mapping(uint256 => Round)) public pairRounds;
+    mapping(string => mapping(uint256 => mapping(address => UserBet))) public pairLedger;
 
+    // Events
     event RoundStarted(uint256 indexed epoch);
     event BetBull(address indexed sender, uint256 indexed epoch, uint256 amount);
     event BetBear(address indexed sender, uint256 indexed epoch, uint256 amount);
     event Claim(address indexed sender, uint256 indexed epoch, uint256 amount);
     event RoundEnd(uint256 indexed epoch, int256 price);
-    
-    constructor(address _priceFeed) {
+    event StartRound(uint256 indexed epoch);
+    event LockRound(uint256 indexed epoch, int256 price);
+    event MarketReset();
+    event GenesisRestart(uint256 indexed epoch);
+    event NewAdminAddress(address admin);
+    event NewOperatorAddress(address operator);
+    event NewMinBetAmount(uint256 minBet);
+    event NewTreasuryFee(uint256 fee);
+
+    // Modifiers
+    modifier onlyAdmin() {
+        require(msg.sender == adminAddress, "Not admin");
+        _;
+    }
+
+    modifier onlyOperator() {
+        require(msg.sender == operatorAddress, "Not operator");
+        _;
+    }
+
+    constructor(address _priceFeed) Ownable(msg.sender) {
         priceFeed = IPriceFeed(_priceFeed);
+        adminAddress = msg.sender;  // Set deployer as admin
+        operatorAddress = msg.sender;  // Set deployer as operator initially
     }
 
     function betBull(uint256 epoch) external payable whenNotPaused nonReentrant {
@@ -79,6 +120,13 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         
         uint256 reward = calculateReward(epoch, msg.sender);
         require(reward > 0, "No reward");
+        
+        // Calculate and update treasury amount here
+        Round memory round = rounds[epoch];
+        UserBet memory bet = ledger[epoch][msg.sender];
+        uint256 otherPoolAmount = bet.bull ? round.bearAmount : round.bullAmount;
+        uint256 treasuryFeeAmount = (otherPoolAmount * treasuryFee) / 10000;
+        treasuryAmount += treasuryFeeAmount;
         
         ledger[epoch][msg.sender].claimed = true;
         payable(msg.sender).transfer(reward);
@@ -154,7 +202,8 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         
         // Calculate share of the winning pool
         if (poolAmount > 0) {
-            uint256 totalReward = otherPoolAmount * (10000 - treasuryFee) / 10000;
+            uint256 treasuryFeeAmount = (otherPoolAmount * treasuryFee) / 10000;
+            uint256 totalReward = otherPoolAmount - treasuryFeeAmount;
             rewardAmount += (totalReward * bet.amount) / poolAmount;
         }
         
@@ -162,26 +211,6 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
     }
 
     // Admin functions
-    address public adminAddress;
-    address public operatorAddress;
-
-    event NewAdminAddress(address admin);
-    event NewOperatorAddress(address operator);
-    event NewMinBetAmount(uint256 minBet);
-    event NewTreasuryFee(uint256 fee);
-    event Pause();
-    event Unpause();
-
-    modifier onlyAdmin() {
-        require(msg.sender == adminAddress, "Not admin");
-        _;
-    }
-
-    modifier onlyOperator() {
-        require(msg.sender == operatorAddress, "Not operator");
-        _;
-    }
-
     function setAdmin(address _adminAddress) external onlyOwner {
         require(_adminAddress != address(0), "Cannot be zero address");
         adminAddress = _adminAddress;
@@ -216,12 +245,10 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
     // Emergency functions
     function pause() external onlyAdmin {
         _pause();
-        emit Pause();
     }
 
     function unpause() external onlyAdmin {
         _unpause();
-        emit Unpause();
     }
 
     function emergencyWithdraw() external onlyAdmin {
@@ -241,5 +268,71 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         
         bet.claimed = true;
         payable(msg.sender).transfer(bet.amount);
+    }
+
+    function withdrawTreasury() external onlyAdmin {
+        require(treasuryAmount > 0, "Nothing to withdraw");
+        uint256 amount = treasuryAmount;
+        treasuryAmount = 0;
+        payable(adminAddress).transfer(amount);
+    }
+
+    function genesisStartRound() external onlyOperator whenNotPaused {
+        require(currentEpoch == 0, "Not in genesis state");
+        require(treasuryAmount == 0, "Treasury not empty");
+        
+        currentEpoch = 1;
+        _startRound(currentEpoch);
+        
+        emit GenesisRestart(currentEpoch);
+    }
+
+    function genesisLockRound() external onlyOperator whenNotPaused {
+        require(currentEpoch == 1, "Can only run for genesis round");
+        require(rounds[currentEpoch].startTimestamp != 0, "Round not started");
+        require(block.timestamp >= rounds[currentEpoch].lockTimestamp, "Too early to lock");
+        
+        // Get price from oracle
+        int256 currentPrice = priceFeed.getLatestPrice();
+        
+        Round storage round = rounds[currentEpoch];
+        round.lockPrice = currentPrice;
+        round.oracleCalled = true;
+        
+        emit LockRound(currentEpoch, currentPrice);
+    }
+
+    function resetMarket() external onlyAdmin {
+        require(paused(), "Market must be paused");
+        
+        // Clear current round data
+        if (rounds[currentEpoch].startTimestamp != 0) {
+            Round storage currentRound = rounds[currentEpoch];
+            require(currentRound.totalAmount == 0, "Current round has bets");
+        }
+        
+        // Reset epoch counter
+        currentEpoch = 0;
+        
+        // Clear treasury amount (should be withdrawn first)
+        require(treasuryAmount == 0, "Withdraw treasury first");
+        
+        emit MarketReset();
+    }
+
+    function addPair(
+        string memory _pairId,
+        address _priceFeed,
+        uint256 _minBet,
+        uint256 _maxBet
+    ) external onlyAdmin {
+        require(!pairs[_pairId].enabled, "Pair already exists");
+        pairs[_pairId] = PairConfig({
+            pairId: _pairId,
+            priceFeed: _priceFeed,
+            enabled: true,
+            minBetAmount: _minBet,
+            maxBetAmount: _maxBet
+        });
     }
 } 

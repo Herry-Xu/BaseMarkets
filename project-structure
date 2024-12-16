@@ -1,0 +1,67 @@
+.
+├── cmd/                           # Application entrypoints
+│   └── api/                      # API server
+│       └── main.go               # Main application initialization and server setup
+│
+├── internal/                      # Private application code, not importable by other projects
+│   ├── api/                      # API layer components
+│   │   ├── handlers/            # HTTP request handlers
+│   │   │   ├── price.go        # Price feed endpoint handlers
+│   │   │   ├── round.go        # Round management endpoint handlers
+│   │   │   └── bet.go          # Betting endpoint handlers
+│   │   ├── middleware/         # HTTP middleware components
+│   │   │   ├── auth.go        # Authentication and authorization
+│   │   │   ├── chain.go       # Blockchain network validation
+│   │   │   ├── cors.go        # Cross-Origin Resource Sharing settings
+│   │   │   ├── pair.go        # Trading pair validation
+│   │   │   └── ratelimit.go   # Request rate limiting
+│   │   └── router/            # API routing
+│   │       └── router.go      # Route definitions and setup
+│   │
+│   ├── contracts/              # Generated smart contract bindings
+│   │   ├── predictionmarket/  # PredictionMarket contract Go bindings
+│   │   │   └── prediction_market.go
+│   │   └── pricefeed/        # PriceFeed contract Go bindings
+│   │       └── price_feed.go
+│   │
+│   ├── price/                 # Price service implementation
+│   │   └── service.go        # Price data fetching and caching
+│   │
+│   ├── round/                 # Round service implementation
+│   │   └── service.go        # Round lifecycle management
+│   │
+│   └── bet/                   # Betting service implementation
+│       └── service.go        # Bet placement and management
+│
+├── pkg/                        # Public libraries that can be used by external projects
+│   ├── ethereum/              # Ethereum interaction utilities
+│   │   └── client.go         # Ethereum client wrapper and helpers
+│   ├── errors/               # Custom error definitions
+│   │   └── errors.go        # Error types and handling
+│   └── utils/                # Utility functions
+│       └── config.go        # Configuration management
+│
+├── scripts/                   # Build and deployment scripts
+│   ├── deploy.mainnet.js    # Mainnet contract deployment
+│   ├── deploy.testnet.js    # Testnet contract deployment
+│   └── extract-abi.js       # Script to extract contract ABIs
+│
+├── contracts/                 # Solidity smart contracts
+│   ├── PredictionMarket.sol # Main prediction market contract
+│   └── interfaces/          # Contract interfaces
+│       └── IPriceFeed.sol  # Price feed interface definition
+│
+├── abi/                      # Generated contract ABIs and bindings
+│   ├── PredictionMarket.abi # PredictionMarket contract ABI
+│   └── PriceFeed.abi       # PriceFeed contract ABI
+│
+├── configs/                  # Configuration files
+│   └── config.yaml         # Application configuration
+│
+├── .env.example             # Example environment variables template
+├── .env.mainnet            # Production environment configuration
+├── .env.testnet            # Development environment configuration
+├── go.mod                  # Go module definition and dependencies
+├── go.sum                  # Go module dependency checksums
+├── hardhat.config.js       # Hardhat Ethereum development configuration
+└── package.json           # Node.js dependencies for contract development

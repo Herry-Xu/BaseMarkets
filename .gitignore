@@ -22,7 +22,23 @@ go.work
 go.work.sum
 
 # env file
-.env
+.env*
+!.env.example
 
 # goland file
 .idea
+
+# Node.js
+node_modules
+yarn.lock
+package-lock.json
+
+# Hardhat
+artifacts
+cache
+
+# Contract artifacts
+abi/
+
+# Postman
+postman
