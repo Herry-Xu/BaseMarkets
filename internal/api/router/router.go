@@ -9,22 +9,13 @@ import (
 	"prediction-market/pkg/ethereum"
 	"prediction-market/pkg/utils"
 
+	"log"
+
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine, client *ethereum.Client) {
-	// Get config
+func SetupRoutes(r *gin.Engine, client *ethereum.Client, env string) {
 	config := utils.GetConfig()
-
-	// Initialize services with config
-	priceService := price.NewService(client)
-	roundService := round.NewService(client, config)
-	betService := bet.NewService(client, config)
-
-	// Initialize handlers
-	priceHandler := handlers.NewPriceHandler(priceService)
-	roundHandler := handlers.NewRoundHandler(roundService)
-	betHandler := handlers.NewBetHandler(betService)
 
 	// Global middleware
 	r.Use(gin.Logger())
@@ -33,18 +24,22 @@ func SetupRoutes(r *gin.Engine, client *ethereum.Client) {
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
-	{
-		// Apply chain and pair middleware to all routes
-		v1.Use(middleware.ChainMiddleware())
-		v1.Use(middleware.PairMiddleware())
+	v1.Use(middleware.ChainMiddleware())
+	v1.Use(middleware.PairMiddleware())
 
-		// Price routes with rate limiting
+	// Initialize only the required service based on environment
+	switch env {
+	case "price-feed":
+		priceService := price.NewService(client)
+		priceHandler := handlers.NewPriceHandler(priceService)
 		price := v1.Group("/price")
 		{
 			price.GET("/latest", middleware.RateLimitPrice(), priceHandler.GetLatestPrice)
 		}
 
-		// Round routes with rate limiting
+	case "round-management":
+		roundService := round.NewService(client, config)
+		roundHandler := handlers.NewRoundHandler(roundService)
 		round := v1.Group("/round")
 		{
 			round.GET("/current", roundHandler.GetCurrentRound)
@@ -52,7 +47,10 @@ func SetupRoutes(r *gin.Engine, client *ethereum.Client) {
 			round.GET("/history", middleware.RateLimitHistory(), roundHandler.GetRoundHistory)
 		}
 
-		// Bet routes with rate limiting
+	case "user":
+		betService := bet.NewService(client, config)
+		betHandler := handlers.NewBetHandler(betService)
+
 		bet := v1.Group("/bet")
 		{
 			bet.POST("/bull", middleware.RateLimitBetting(), betHandler.PlaceBullBet)
@@ -61,20 +59,15 @@ func SetupRoutes(r *gin.Engine, client *ethereum.Client) {
 			bet.POST("/claim/:epoch", middleware.RateLimitClaiming(), betHandler.ClaimReward)
 		}
 
-		// User history routes
 		history := v1.Group("/history")
 		{
-			// Get user's betting history with filters
 			history.GET("/bets", middleware.RateLimitHistory(), betHandler.GetUserBetHistory)
-
-			// Get user's performance stats
 			history.GET("/stats", middleware.RateLimitHistory(), betHandler.GetUserStats)
-
-			// Get specific round results for user
 			history.GET("/round/:epoch", betHandler.GetUserRoundResult)
-
-			// Get user's PnL over time
 			history.GET("/pnl", middleware.RateLimitHistory(), betHandler.GetUserPnL)
 		}
+
+	default:
+		log.Fatalf("Unknown environment: %s", env)
 	}
 }
