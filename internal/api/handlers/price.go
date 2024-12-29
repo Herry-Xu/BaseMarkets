@@ -39,5 +39,6 @@ func (h *PriceHandler) GetLatestPrice(c *gin.Context) {
 		"price":     priceData.Price.String(),
 		"timestamp": priceData.Timestamp,
 		"pair":      priceData.PairID,
+		"decimals":  priceData.Decimals,
 	})
 }

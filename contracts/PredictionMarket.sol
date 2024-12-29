@@ -140,8 +140,8 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
             "Round not ready for execution"
         );
         
-        // Get final price from oracle
-        int256 closePrice = priceFeed.getLatestPrice();
+        // Get final price from oracle using the new interface
+        (, int256 closePrice,,,) = IPriceFeed(priceFeed).latestRoundData();
         rounds[currentEpoch].closePrice = closePrice;
         rounds[currentEpoch].closed = true;
         
@@ -292,8 +292,8 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         require(rounds[currentEpoch].startTimestamp != 0, "Round not started");
         require(block.timestamp >= rounds[currentEpoch].lockTimestamp, "Too early to lock");
         
-        // Get price from oracle
-        int256 currentPrice = priceFeed.getLatestPrice();
+        // Get price from oracle using the new interface
+        (, int256 currentPrice,,,) = IPriceFeed(priceFeed).latestRoundData();
         
         Round storage round = rounds[currentEpoch];
         round.lockPrice = currentPrice;

@@ -21,7 +21,7 @@
 │   ├── contracts/              # Generated smart contract bindings
 │   │   ├── predictionmarket/  # PredictionMarket contract Go bindings
 │   │   │   └── prediction_market.go
-│   │   └── pricefeed/        # PriceFeed contract Go bindings
+│   │   └── pricefeed/        # PriceFeed contract Go bindings TODO: remove
 │   │       └── price_feed.go
 │   │
 │   ├── price/                 # Price service implementation

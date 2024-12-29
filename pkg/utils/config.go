@@ -45,7 +45,6 @@ func LoadConfig() (*Config, error) {
 		RpcURL:            os.Getenv("RPC_URL"),
 		Environment:       os.Getenv("ENVIRONMENT"),
 		PredictionAddress: os.Getenv("PREDICTION_ADDRESS"),
-		PriceFeedAddress:  os.Getenv("PRICE_FEED_ADDRESS"),
 		BasescanAPIKey:    os.Getenv("BASESCAN_API_KEY"),
 		Port:              os.Getenv("PORT"),
 	}

@@ -42,3 +42,6 @@ abi/
 
 # Postman
 postman
+
+# VSCode
+.vscode

@@ -13,7 +13,6 @@ type ChainConfig struct {
 	ID              int64
 	Name            string
 	RPC             string
-	PriceFeedID     string
 	Enabled         bool
 	MinBlockTime    time.Duration // Minimum block time for the chain
 	MaxGasPrice     int64         // Maximum gas price to accept
@@ -27,7 +26,6 @@ var SupportedChains = map[int64]ChainConfig{
 		ID:              8453,
 		Name:            "Base",
 		RPC:             "https://mainnet.base.org",
-		PriceFeedID:     "0x6550bc2301936011c1334555e62A87705A81C12C",
 		Enabled:         true,
 		MinBlockTime:    2 * time.Second,
 		MaxGasPrice:     100, // in gwei
@@ -38,7 +36,6 @@ var SupportedChains = map[int64]ChainConfig{
 		ID:              84532,
 		Name:            "Base Sepolia",
 		RPC:             "https://sepolia.base.org",
-		PriceFeedID:     "0x6550bc2301936011c1334555e62A87705A81C12C",
 		Enabled:         true,
 		MinBlockTime:    2 * time.Second,
 		MaxGasPrice:     50,

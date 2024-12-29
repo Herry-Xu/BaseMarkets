@@ -33,9 +33,9 @@ Main contract handling betting logic and round management.
 ## API Endpoints
 
 ### Price Endpoints
-GET /api/v1/price/latest
-Header: X-Chain-ID: 8453
-Header: X-Pair-Symbol: BTC-USDC
+GET /api/v1/price/latest?pairId=ETH-USD
+Parameters:
+- pairId: Trading pair identifier (e.g., ETH-USD, BTC-USD)
 
 ### Round Endpoints
 GET /api/v1/round/current
@@ -64,10 +64,16 @@ GET /api/v1/history/pnl?timeframe=daily
 
 ## Trading Pairs
 Currently supported:
-- BTC-USDC
+- BTC-USD
   - Min bet: 1 USDC
   - Max bet: 500 USDC
   - Price feed: Chainlink BTC/USD
+  - Update frequency: 30 seconds
+  - Decimals: 8
+- ETH-USD
+  - Min bet: 1 USDC
+  - Max bet: 500 USDC
+  - Price feed: Chainlink ETH/USD
   - Update frequency: 30 seconds
   - Decimals: 8
 
