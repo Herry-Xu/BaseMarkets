@@ -96,17 +96,17 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         require(msg.value <= MAX_BET_AMOUNT, "Bet amount too large");
         require(rounds[epoch].startTimestamp != 0, "Round not started");
         require(block.timestamp < rounds[epoch].lockTimestamp, "Round locked");
-        
+
         // Record user's bet
         ledger[epoch][msg.sender] = UserBet({
             amount: msg.value,
             claimed: false,
             bull: true
         });
-        
+
         rounds[epoch].bullAmount += msg.value;
         rounds[epoch].totalAmount += msg.value;
-        
+
         emit BetBull(msg.sender, epoch, msg.value);
     }
 
@@ -117,20 +117,20 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
     function claim(uint256 epoch) external nonReentrant {
         require(rounds[epoch].closed, "Round not closed");
         require(!ledger[epoch][msg.sender].claimed, "Already claimed");
-        
+
         uint256 reward = calculateReward(epoch, msg.sender);
         require(reward > 0, "No reward");
-        
+
         // Calculate and update treasury amount here
         Round memory round = rounds[epoch];
         UserBet memory bet = ledger[epoch][msg.sender];
         uint256 otherPoolAmount = bet.bull ? round.bearAmount : round.bullAmount;
         uint256 treasuryFeeAmount = (otherPoolAmount * treasuryFee) / 10000;
         treasuryAmount += treasuryFeeAmount;
-        
+
         ledger[epoch][msg.sender].claimed = true;
         payable(msg.sender).transfer(reward);
-        
+
         emit Claim(msg.sender, epoch, reward);
     }
 
@@ -139,14 +139,14 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
             block.timestamp >= rounds[currentEpoch].closeTimestamp,
             "Round not ready for execution"
         );
-        
+
         // Get final price from oracle using the new interface
         (, int256 closePrice,,,) = IPriceFeed(priceFeed).latestRoundData();
         rounds[currentEpoch].closePrice = closePrice;
         rounds[currentEpoch].closed = true;
-        
+
         emit RoundEnd(currentEpoch, closePrice);
-        
+
         // Start new round
         currentEpoch++;
         _startRound(currentEpoch);
@@ -159,54 +159,54 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         round.startTimestamp = block.timestamp;
         round.lockTimestamp = block.timestamp + intervalSeconds;
         round.closeTimestamp = block.timestamp + intervalSeconds + bufferSeconds;
-        
+
         emit RoundStarted(epoch);
     }
 
-    function calculateReward(uint256 epoch, address user) 
-        internal 
-        view 
-        returns (uint256) 
+    function calculateReward(uint256 epoch, address user)
+        internal
+        view
+        returns (uint256)
     {
         require(rounds[epoch].closed, "Round not closed");
         UserBet memory bet = ledger[epoch][user];
         Round memory round = rounds[epoch];
-        
+
         // If user did not bet or already claimed
         if (bet.amount == 0 || bet.claimed) {
             return 0;
         }
-        
+
         // If oracle failed to get price
         if (!round.oracleCalled) {
             return bet.amount;
         }
-        
+
         // Determine if user won
         bool won;
         if (round.closePrice == round.lockPrice) {
             return bet.amount; // Return original bet if prices are equal
         } else {
-            won = (round.closePrice > round.lockPrice && bet.bull) || 
+            won = (round.closePrice > round.lockPrice && bet.bull) ||
                   (round.closePrice < round.lockPrice && !bet.bull);
         }
-        
+
         if (!won) {
             return 0;
         }
-        
+
         // Calculate reward
         uint256 rewardAmount = bet.amount;
         uint256 poolAmount = bet.bull ? round.bullAmount : round.bearAmount;
         uint256 otherPoolAmount = bet.bull ? round.bearAmount : round.bullAmount;
-        
+
         // Calculate share of the winning pool
         if (poolAmount > 0) {
             uint256 treasuryFeeAmount = (otherPoolAmount * treasuryFee) / 10000;
             uint256 totalReward = otherPoolAmount - treasuryFeeAmount;
             rewardAmount += (totalReward * bet.amount) / poolAmount;
         }
-        
+
         return rewardAmount;
     }
 
@@ -265,7 +265,7 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         UserBet storage bet = ledger[epoch][msg.sender];
         require(bet.amount > 0, "No bet");
         require(!bet.claimed, "Already claimed");
-        
+
         bet.claimed = true;
         payable(msg.sender).transfer(bet.amount);
     }
@@ -280,10 +280,10 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
     function genesisStartRound() external onlyOperator whenNotPaused {
         require(currentEpoch == 0, "Not in genesis state");
         require(treasuryAmount == 0, "Treasury not empty");
-        
+
         currentEpoch = 1;
         _startRound(currentEpoch);
-        
+
         emit GenesisRestart(currentEpoch);
     }
 
@@ -291,32 +291,32 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
         require(currentEpoch == 1, "Can only run for genesis round");
         require(rounds[currentEpoch].startTimestamp != 0, "Round not started");
         require(block.timestamp >= rounds[currentEpoch].lockTimestamp, "Too early to lock");
-        
+
         // Get price from oracle using the new interface
         (, int256 currentPrice,,,) = IPriceFeed(priceFeed).latestRoundData();
-        
+
         Round storage round = rounds[currentEpoch];
         round.lockPrice = currentPrice;
         round.oracleCalled = true;
-        
+
         emit LockRound(currentEpoch, currentPrice);
     }
 
     function resetMarket() external onlyAdmin {
         require(paused(), "Market must be paused");
-        
+
         // Clear current round data
         if (rounds[currentEpoch].startTimestamp != 0) {
             Round storage currentRound = rounds[currentEpoch];
             require(currentRound.totalAmount == 0, "Current round has bets");
         }
-        
+
         // Reset epoch counter
         currentEpoch = 0;
-        
+
         // Clear treasury amount (should be withdrawn first)
         require(treasuryAmount == 0, "Withdraw treasury first");
-        
+
         emit MarketReset();
     }
 
@@ -335,4 +335,4 @@ contract PredictionMarket is Ownable, Pausable, ReentrancyGuard {
             maxBetAmount: _maxBet
         });
     }
-} 
+}

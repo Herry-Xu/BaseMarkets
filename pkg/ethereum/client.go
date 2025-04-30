@@ -10,6 +10,8 @@ import (
 
 	"prediction-market/pkg/utils"
 
+	"prediction-market/internal/contracts/predictionmarket"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,13 +24,7 @@ type Client struct {
 	*ethclient.Client
 	chainID *big.Int
 	mu      sync.RWMutex
-	config  *Config
-}
-
-type Config struct {
-	RPCUrl     string
-	ChainID    int64
-	PrivateKey string
+	config  *utils.Config
 }
 
 var (
@@ -51,18 +47,13 @@ func NewClient(config *utils.Config) (*Client, error) {
 		}
 
 		if chainID.Int64() != config.ChainID {
-			err = fmt.Errorf("chain ID mismatch: got %d, want %d", chainID.Int64(), config.ChainID)
 			return
 		}
 
 		client = &Client{
 			Client:  ethClient,
 			chainID: chainID,
-			config: &Config{
-				RPCUrl:     config.NodeURL,
-				ChainID:    config.ChainID,
-				PrivateKey: config.PrivateKey,
-			},
+			config:  config,
 		}
 	})
 
@@ -159,4 +150,15 @@ func (c *Client) WaitForTransaction(ctx context.Context, txHash common.Hash) (*t
 			continue
 		}
 	}
+}
+
+// Add this method to create contract instances
+func (c *Client) GetPredictionMarket() (*predictionmarket.Contracts, error) {
+	if c.config.PredictionAddress == "" {
+		return nil, fmt.Errorf("prediction market address not configured")
+	}
+	return predictionmarket.NewContracts(
+		common.HexToAddress(c.config.PredictionAddress),
+		c.Client,
+	)
 }

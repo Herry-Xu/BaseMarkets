@@ -9,6 +9,7 @@ import (
 	"prediction-market/internal/contracts/pricefeed"
 	"prediction-market/pkg/errors"
 	"prediction-market/pkg/ethereum"
+	"prediction-market/pkg/types"
 	"prediction-market/pkg/utils"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -16,8 +17,9 @@ import (
 )
 
 type Service interface {
-	GetLatestPrice(ctx context.Context, pairID string) (*Price, error)
-	GetPriceAtTime(ctx context.Context, pairID string, timestamp time.Time) (*PriceData, error)
+	GetLatestPrice(ctx context.Context, pairID string) (*types.PriceData, error)
+	GetPriceAtTime(ctx context.Context, pairID string, timestamp time.Time) (*types.PriceData, error)
+	GetPriceHistory(ctx context.Context, pairID string, interval string, limit int) ([]types.PriceData, error)
 }
 
 type PriceData struct {
@@ -48,7 +50,7 @@ func NewService(client *ethereum.Client) Service {
 	}
 }
 
-func (s *service) GetLatestPrice(ctx context.Context, pairID string) (*Price, error) {
+func (s *service) GetLatestPrice(ctx context.Context, pairID string) (*types.PriceData, error) {
 	priceData, err := s.fetchPriceFromChain(ctx, pairID)
 	if err != nil {
 		return nil, err
@@ -70,17 +72,83 @@ func (s *service) GetLatestPrice(ctx context.Context, pairID string) (*Price, er
 		return nil, errors.Wrap(errors.ErrPriceNotAvailable, "failed to get decimals", err)
 	}
 
-	return &Price{
+	return &types.PriceData{
 		PairID:    priceData.PairID,
-		Price:     priceData.Price,
-		Timestamp: priceData.Timestamp,
-		Decimals:  decimals,
+		Price:     &types.Decimal{Int: priceData.Price},
+		Timestamp: priceData.Timestamp.Unix(),
+		Decimals:  int(decimals),
 	}, nil
 }
 
-func (s *service) GetPriceAtTime(ctx context.Context, pairID string, timestamp time.Time) (*PriceData, error) {
+func (s *service) GetPriceAtTime(ctx context.Context, pairID string, timestamp time.Time) (*types.PriceData, error) {
 	// Implementation for historical price lookup
 	return nil, nil
+}
+
+func (s *service) GetPriceHistory(ctx context.Context, pairID string, interval string, limit int) ([]types.PriceData, error) {
+	// This is a simplified implementation
+	// In a real application, you would fetch this from a database or external API
+
+	// Parse interval string to duration
+	var duration time.Duration
+	switch interval {
+	case "1m":
+		duration = time.Minute
+	case "5m":
+		duration = 5 * time.Minute
+	case "15m":
+		duration = 15 * time.Minute
+	case "1h":
+		duration = time.Hour
+	case "4h":
+		duration = 4 * time.Hour
+	case "1d":
+		duration = 24 * time.Hour
+	default:
+		duration = 5 * time.Minute
+	}
+
+	// Get current price as a starting point
+	currentPrice, err := s.GetLatestPrice(ctx, pairID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate mock historical data
+	// In production, you would fetch this from a database
+	result := make([]types.PriceData, 0, limit)
+	now := time.Now().Unix()
+
+	// Add current price
+	result = append(result, *currentPrice)
+
+	// Generate historical prices with slight variations
+	// This is just for demonstration - replace with actual historical data
+	for i := 1; i < limit; i++ {
+		timestamp := now - int64(i)*int64(duration.Seconds())
+
+		// Create variation factor (98% to 102%)
+		variationFactor := &types.Decimal{Int: big.NewInt(int64(98 + i%5))}
+
+		// Create a new big.Int for the calculation
+		newPrice := new(big.Int).Set(currentPrice.Price.Int)
+
+		// Multiply by variation factor (98-102) and divide by 100
+		newPrice.Mul(newPrice, variationFactor.Int)
+		newPrice.Div(newPrice, big.NewInt(100))
+
+		// Create a price with slight variation
+		historicalPrice := types.PriceData{
+			PairID:    pairID,
+			Price:     &types.Decimal{Int: newPrice},
+			Timestamp: timestamp,
+			Decimals:  currentPrice.Decimals,
+		}
+
+		result = append(result, historicalPrice)
+	}
+
+	return result, nil
 }
 
 func (s *service) fetchPriceFromChain(ctx context.Context, pairID string) (*PriceData, error) {

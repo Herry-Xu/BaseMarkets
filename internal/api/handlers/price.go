@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"prediction-market/internal/price"
 	"prediction-market/pkg/errors"
@@ -40,5 +41,38 @@ func (h *PriceHandler) GetLatestPrice(c *gin.Context) {
 		"timestamp": priceData.Timestamp,
 		"pair":      priceData.PairID,
 		"decimals":  priceData.Decimals,
+	})
+}
+
+// GetPriceHistory returns historical price data for a trading pair
+func (h *PriceHandler) GetPriceHistory(c *gin.Context) {
+	pair := c.MustGet("pair").(types.TradingPair)
+
+	// Parse query parameters
+	interval := c.DefaultQuery("interval", "5m")
+	limitStr := c.DefaultQuery("limit", "100")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 100
+	}
+
+	// Get price history
+	priceHistory, err := h.priceService.GetPriceHistory(c.Request.Context(), pair.Symbol, interval, limit)
+	if err != nil {
+		if e, ok := err.(*errors.Error); ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": e.Message,
+				"code":  e.Code,
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get price history"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"prices":   priceHistory,
+		"pair":     pair.Symbol,
+		"interval": interval,
 	})
 }

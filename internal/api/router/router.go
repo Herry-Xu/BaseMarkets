@@ -35,6 +35,7 @@ func SetupRoutes(r *gin.Engine, client *ethereum.Client, env string) {
 		price := v1.Group("/price")
 		{
 			price.GET("/latest", middleware.RateLimitPrice(), priceHandler.GetLatestPrice)
+			price.GET("/history", middleware.RateLimitHistory(), priceHandler.GetPriceHistory)
 		}
 
 	case "round-management":

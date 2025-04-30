@@ -1,0 +1,39 @@
+{
+  "name": "ui-components-qs-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@account-kit/infra": "latest",
+    "@account-kit/react": "latest",
+    "@headlessui/react": "^2.2.0",
+    "@tanstack/react-query": "latest",
+    "encoding": "^0.1.13",
+    "framer-motion": "^11.15.0",
+    "lightweight-charts": "^4.2.2",
+    "next": "14.2.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hot-toast": "^2.4.1",
+    "sonner": "^1.7.1",
+    "viem": "2.20.0",
+    "wagmi": "2.12.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.4",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5"
+  }
+}

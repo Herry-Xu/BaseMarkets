@@ -1,0 +1,1 @@
+// We'll implement this later when we add actual settings functionality 

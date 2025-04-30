@@ -55,12 +55,12 @@ func (s *service) getPredictionContract() (*predictionmarket.Contracts, error) {
 }
 
 func (s *service) GetCurrentRound(ctx context.Context, pairID string) (*Round, error) {
-	predictionMarket, err := s.getPredictionContract()
+	contract, err := s.client.GetPredictionMarket()
 	if err != nil {
-		return nil, errors.Wrap(errors.ErrTransactionFail, "failed to get contract", err)
+		return nil, err
 	}
 
-	currentEpoch, err := predictionMarket.CurrentEpoch(&bind.CallOpts{Context: ctx})
+	currentEpoch, err := contract.CurrentEpoch(&bind.CallOpts{Context: ctx})
 	if err != nil {
 		return nil, errors.Wrap(errors.ErrRoundNotFound, "failed to get current epoch", err)
 	}
