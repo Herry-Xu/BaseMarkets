@@ -32,7 +32,7 @@ export function GameInterface() {
   // Auth state
   const { isConnected } = useSignerStatus();
   const { openAuthModal } = useAuthModal();
-  
+
   // Local state
   const [modalOpen, setModalOpen] = useState(false);
   const [predictionDirection, setPredictionDirection] = useState<PredictionDirection>('up');
@@ -96,7 +96,7 @@ export function GameInterface() {
   return (
     <div className="space-y-4">
       {/* Top Bar */}
-      <TopBar 
+      <TopBar
         currentPrice={currentPrice}
         priceChange={priceChange}
         selectedMarket={selectedMarket}
@@ -114,7 +114,7 @@ export function GameInterface() {
           <div className="block lg:hidden glass rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-text-secondary">Current Price</span>
-              <PriceChange 
+              <PriceChange
                 change={priceChange}
                 basePrice={rounds.live.startPrice}
                 showPercentage
@@ -176,15 +176,15 @@ export function GameInterface() {
       />
 
       {/* Modals */}
-      <HistoryModal 
+      <HistoryModal
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
       />
-      <LeaderboardModal 
+      <LeaderboardModal
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
       />
-      <PredictionModal 
+      <PredictionModal
         isOpen={modalOpen}
         onClose={handleModalClose}
         direction={predictionDirection}
@@ -192,14 +192,14 @@ export function GameInterface() {
         payout={nextRoundPayout}
         onConfirm={handlePredictionConfirm}
       />
-      <HowToModal 
+      <HowToModal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
       />
-      <SettingsModal 
+      <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
     </div>
   );
-} 
+}

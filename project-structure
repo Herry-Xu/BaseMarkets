@@ -1,66 +1,103 @@
 .
 ├── cmd/                           # Application entrypoints
-│   └── api/                      # API server
-│       └── main.go               # Main application initialization and server setup
+│   ├── api/                      # API server
+│   │   └── main.go               # Main application initialization and server setup
+│   └── worker/                   # Background worker processes (NEW)
+│       └── main.go               # Worker initialization and execution
 │
 ├── internal/                      # Private application code, not importable by other projects
 │   ├── api/                      # API layer components
 │   │   ├── handlers/            # HTTP request handlers
 │   │   │   ├── price.go        # Price feed endpoint handlers
 │   │   │   ├── round.go        # Round management endpoint handlers
-│   │   │   └── bet.go          # Betting endpoint handlers
+│   │   │   ├── bet.go          # Betting endpoint handlers
+│   │   │   └── health.go       # Health check endpoints (NEW)
 │   │   ├── middleware/         # HTTP middleware components
 │   │   │   ├── auth.go        # Authentication and authorization
 │   │   │   ├── chain.go       # Blockchain network validation
 │   │   │   ├── cors.go        # Cross-Origin Resource Sharing settings
 │   │   │   ├── pair.go        # Trading pair validation
-│   │   │   └── ratelimit.go   # Request rate limiting
-│   │   └── router/            # API routing
-│   │       └── router.go      # Route definitions and setup
+│   │   │   ├── ratelimit.go   # Request rate limiting
+│   │   │   └── logging.go     # Request logging middleware (NEW)
+│   │   ├── router/            # API routing
+│   │   │   └── router.go      # Route definitions and setup
+│   │   └── server/            # Server configuration (NEW)
+│   │       └── server.go      # HTTP server setup and configuration
 │   │
 │   ├── contracts/              # Generated smart contract bindings
-│   │   ├── predictionmarket/  # PredictionMarket contract Go bindings
-│   │   │   └── prediction_market.go
-│   │   └── pricefeed/        # PriceFeed contract Go bindings TODO: remove
-│   │       └── price_feed.go
+│   │   └── predictionmarket/  # PredictionMarket contract Go bindings
+│   │       └── prediction_market.go
 │   │
 │   ├── price/                 # Price service implementation
-│   │   └── service.go        # Price data fetching and caching
+│   │   ├── service.go        # Price data fetching and caching
+│   │   └── provider/         # Price data providers (NEW)
+│   │       ├── binance.go    # Binance price provider
+│   │       └── coinbase.go   # Coinbase price provider
 │   │
 │   ├── round/                 # Round service implementation
-│   │   └── service.go        # Round lifecycle management
+│   │   ├── service.go        # Round lifecycle management
+│   │   └── repository.go     # Round data storage (NEW)
 │   │
-│   └── bet/                   # Betting service implementation
-│       └── service.go        # Bet placement and management
+│   ├── bet/                   # Betting service implementation
+│   │   ├── service.go        # Bet placement and management
+│   │   └── repository.go     # Bet data storage (NEW)
+│   │
+│   ├── domain/                # Domain models and business logic (NEW)
+│   │   ├── models.go         # Core domain entities
+│   │   └── errors.go         # Domain-specific errors
+│   │
+│   └── storage/               # Data storage implementations (NEW)
+│       ├── memory/           # In-memory storage
+│       └── postgres/         # PostgreSQL storage
 │
 ├── pkg/                        # Public libraries that can be used by external projects
 │   ├── ethereum/              # Ethereum interaction utilities
-│   │   └── client.go         # Ethereum client wrapper and helpers
+│   │   ├── client.go         # Ethereum client wrapper and helpers
+│   │   └── events/           # Event handling utilities (NEW)
+│   │       └── listener.go   # Blockchain event listener
 │   ├── errors/               # Custom error definitions
 │   │   └── errors.go        # Error types and handling
-│   └── utils/                # Utility functions
-│       └── config.go        # Configuration management
+│   ├── utils/                # Utility functions
+│   │   ├── config.go        # Configuration management
+│   │   └── logger.go        # Logging utilities (NEW)
+│   └── metrics/              # Application metrics (NEW)
+│       └── prometheus.go    # Prometheus metrics integration
 │
 ├── scripts/                   # Build and deployment scripts
 │   ├── deploy.mainnet.js    # Mainnet contract deployment
 │   ├── deploy.testnet.js    # Testnet contract deployment
-│   └── extract-abi.js       # Script to extract contract ABIs
+│   ├── extract-abi.js       # Script to extract contract ABIs
+│   └── migrations/          # Database migrations (NEW)
+│       └── init.sql         # Initial database schema
 │
 ├── contracts/                 # Solidity smart contracts
 │   ├── PredictionMarket.sol # Main prediction market contract
-│   └── interfaces/          # Contract interfaces
-│       └── IPriceFeed.sol  # Price feed interface definition
+│   ├── interfaces/          # Contract interfaces
+│   │   └── IPriceFeed.sol  # Price feed interface definition
+│   └── test/                # Contract tests (NEW)
+│       └── PredictionMarket.test.js
 │
 ├── abi/                      # Generated contract ABIs and bindings
-│   ├── PredictionMarket.abi # PredictionMarket contract ABI
-│   └── PriceFeed.abi       # PriceFeed contract ABI
+│   └── PredictionMarket.abi # PredictionMarket contract ABI
 │
 ├── configs/                  # Configuration files
-│   └── config.yaml         # Application configuration
+│   ├── config.yaml         # Application configuration
+│   └── config.test.yaml    # Test configuration (NEW)
+│
+├── docs/                     # Documentation (NEW)
+│   ├── api.md              # API documentation
+│   └── architecture.md     # System architecture overview
+│
+├── test/                     # Integration and end-to-end tests (NEW)
+│   └── api/                # API tests
+│       └── price_test.go   # Price API tests
 │
 ├── .env.example             # Example environment variables template
 ├── .env.mainnet            # Production environment configuration
 ├── .env.testnet            # Development environment configuration
+├── Dockerfile              # Docker build configuration (NEW)
+├── docker-compose.yml      # Docker Compose services definition (NEW)
+├── Makefile                # Build and development commands (NEW)
 ├── go.mod                  # Go module definition and dependencies
 ├── go.sum                  # Go module dependency checksums
 ├── hardhat.config.js       # Hardhat Ethereum development configuration

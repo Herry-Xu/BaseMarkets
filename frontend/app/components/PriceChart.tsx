@@ -1,10 +1,8 @@
 "use client";
 import React, { useEffect, useRef } from 'react';
-import { createChart, IChartApi, UTCTimestamp, LineWidth } from 'lightweight-charts';
+import { AreaSeries, createChart, IChartApi, UTCTimestamp } from 'lightweight-charts';
 import { motion } from 'framer-motion';
 import { Round } from '@/app/types/game';
-import { useGameState } from '@/app/hooks/useGameState';
-import type { PricePoint } from '@/app/hooks/useGameState';
 
 interface PriceChartProps {
   round: Round;
@@ -14,8 +12,6 @@ interface PriceChartProps {
 export function PriceChart({ round, currentPrice }: PriceChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const chartType = useGameState((state) => state.chartType);
-  const priceHistory = useGameState((state) => state.priceHistory);
   const isUp = currentPrice >= round.startPrice;
 
   useEffect(() => {
@@ -24,9 +20,6 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
     // Calculate price range based on 50-point intervals
     const priceStep = 50;
     const numSteps = 1;
-    const basePrice = round.startPrice;
-    const minPrice = Math.floor(basePrice / priceStep) * priceStep - (priceStep * numSteps);
-    const maxPrice = Math.ceil(basePrice / priceStep) * priceStep + (priceStep * numSteps);
 
     const containerWidth = chartContainerRef.current.clientWidth;
     const barSpacing = (containerWidth - 60) / 60; // Calculate spacing to fit 60 seconds
@@ -90,8 +83,10 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
       to: 60,
     });
 
-    const series = chart.addLineSeries({
-      color: isUp ? '#15BE77' : '#FF453A',
+    const series = chart.addSeries(AreaSeries, {
+      lineColor: isUp ? '#15BE77' : '#FF453A',
+      topColor: isUp ? 'rgba(21, 190, 119, 0.2)' : 'rgba(255, 69, 58, 0.2)',
+      bottomColor: 'rgba(0, 0, 0, 0)',
       lineWidth: 2,
       lastValueVisible: false,
       priceLineVisible: false,
@@ -101,7 +96,7 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
         const totalRange = priceStep * numSteps * 2; // Total range we want to show
         const minValue = Math.floor(midPrice / priceStep) * priceStep - (totalRange / 2);
         const maxValue = Math.ceil(midPrice / priceStep) * priceStep + (totalRange / 2);
-        
+
         return {
           priceRange: {
             minValue,
@@ -124,7 +119,7 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
     // Initialize with more interpolated points for smoother line
     const points = [];
     const elapsedSeconds = Math.floor((Date.now() - round.startTime) / 1000);
-    
+
     // Add initial point
     points.push({
       time: 0 as UTCTimestamp,
@@ -139,7 +134,7 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
         const progress = i / 60;
         const easedProgress = progress * (2 - progress); // Quadratic easing
         const interpolatedPrice = round.startPrice + (priceDiff * easedProgress * (i / elapsedSeconds));
-        
+
         points.push({
           time: i as UTCTimestamp,
           value: interpolatedPrice,
@@ -206,4 +201,4 @@ export function PriceChart({ round, currentPrice }: PriceChartProps) {
       <div ref={chartContainerRef} />
     </motion.div>
   );
-} 
+}
